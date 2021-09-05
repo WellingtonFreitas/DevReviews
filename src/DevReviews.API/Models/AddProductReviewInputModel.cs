@@ -9,6 +9,6 @@ namespace DevReviews.API.Models
     {
         public int Reating { get; set; }
         public string Author { get; set; }
-        public string Coments { get; set; }
+        public string Comments { get; set; }
     }
 }

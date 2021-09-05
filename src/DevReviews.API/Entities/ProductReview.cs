@@ -1,18 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DevReviews.API.Entities
 {
     public class ProductReview
     {
-        public ProductReview(string author, int rating, string comments)
+        public ProductReview(string author, int rating, string comments, int productId)
         {
             Author = author;
             Rating = rating;
             Comments = comments;
             RegisteredAt = DateTime.Now;
+            ProductId = productId;
         }
 
         public int Id { get; private set; }

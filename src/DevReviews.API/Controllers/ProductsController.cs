@@ -2,9 +2,12 @@
 using DevReviews.API.Entities;
 using DevReviews.API.Models;
 using DevReviews.API.Persistence;
+using DevReviews.API.Persistence.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace DevReviews.API.Controllers
 {
@@ -12,56 +15,64 @@ namespace DevReviews.API.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly DevReviewsDbContext _dbContext;
         private readonly IMapper _mapper;
-        public ProductsController(DevReviewsDbContext dbContext, IMapper mapper)
+        private readonly IProductRepository _repository;
+
+        public ProductsController(IProductRepository repository, IMapper mapper)
         {
-            _dbContext = dbContext;
             _mapper = mapper;
+            _repository = repository;
         }
         [HttpGet]
-        public IActionResult GetaAll()
+        public async Task<IActionResult> GetAll()
         {
-            var products = _dbContext.Products;
+            var products = await _repository.GetAllAsync();
 
-            var productViewModel = _mapper.Map<List<ProductViewModel>>(products);
+            var productsViewModel = _mapper.Map<List<ProductViewModel>>(products);
 
-            return Ok(productViewModel);
+            return Ok(productsViewModel);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var product = _dbContext.Products.SingleOrDefault(p => p.Id == id);
-            if (product == null)
-                return NotFound();
-            var productDetails = _mapper.Map<ProductDetailsViewModel>(product);
+            var product = await _repository.GetDetailsByIdAsync(id);
 
-            return Ok(productDetails);
-        }
-        [HttpPost]
-        public IActionResult Post(AddProductInputModel inputModel)
-        {
-            var product = new Product(inputModel.Title, inputModel.Description, inputModel.Price);
-            _dbContext.Products.Add(product);
-            return CreatedAtAction(nameof(GetById), new { product.Id }, inputModel);
-        }
-        [HttpPut("{id}")]
-        public IActionResult Put(int id, UpdateProductInputModel inputModel)
-        {
-            if (inputModel.Description.Length > 50)
-                return BadRequest();
-
-            var product = _dbContext.Products.SingleOrDefault(p => p.Id == id);
             if (product == null)
             {
                 return NotFound();
             }
 
-            product.Update(inputModel.Description, inputModel.Price);
+            var productDetails = _mapper.Map<ProductDetailsViewModel>(product);
+
+            return Ok(productDetails);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post(AddProductInputModel model)
+        {
+            var product = new Product(model.Title, model.Description, model.Price);
+
+            await _repository.AddAsync(product);
+
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, model);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, UpdateProductInputModel model)
+        {
+            var product = await _repository.GetByIdAsync(id);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            product.Update(model.Description, model.Price);
+
+            await _repository.UpdateAsync(product);
 
             return NoContent();
-
         }
     }
 }
